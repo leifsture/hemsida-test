@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alla personer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f0;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .huvud {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+    .topbar-right { display: flex; gap: 10px; align-items: center; }
+    a.knapp, button.knapp {
+      font-size: 13px;
+      color: #555;
+      text-decoration: none;
+      background: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid #e0e0da;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    a.knapp:hover, button.knapp:hover { background: #eaeae5; }
+    .antal { font-size: 13px; color: #888; }
+    .tabell-wrap {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e8e8e4;
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 14px 16px;
+      border-bottom: 1px solid #f0f0ec;
+      background: #fafaf7;
+    }
+    tbody tr { border-bottom: 1px solid #f5f5f0; transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafaf7; }
+    tbody td { padding: 13px 16px; font-size: 14px; color: #1a1a1a; }
+    tbody td.muted { color: #aaa; font-size: 13px; }
+    .ta-bort {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #ccc;
+      font-size: 16px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .ta-bort:hover { color: #e24b4a; background: #fcebeb; }
+    .tom {
+      text-align: center;
+      padding: 3rem;
+      color: #aaa;
+      font-size: 14px;
+    }
+    .laddar { text-align: center; padding: 3rem; color: #aaa; font-size: 14px; }
+    .sok-wrap { margin-bottom: 1rem; }
+    .sok-wrap input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #e0e0da;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      outline: none;
+      color: #1a1a1a;
+    }
+    .sok-wrap input:focus { border-color: #1a1a1a; }
+  </style>
+</head>
+<body>
+  <div class="huvud">
+    <div class="topbar">
+      <div>
+        <h1>Sparade personer</h1>
+        <p class="antal" id="antal">Laddar...</p>
+      </div>
+      <div class="topbar-right">
+        <button class="knapp" onclick="exporteraCsv()">⬇ Exportera CSV</button>
+        <a class="knapp" href="/">+ Lägg till person</a>
+      </div>
+    </div>
+
+    <div class="sok-wrap">
+      <input type="text" id="sok" placeholder="Sök på namn, ort eller postnummer..." oninput="filtrera()" />
+    </div>
+
+    <div class="tabell-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Förnamn</th>
+            <th>Efternamn</th>
+            <th>Postnummer</th>
+            <th>Ort</th>
+            <th>Tillagd</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tabell-kropp">
+          <tr><td colspan="7" class="laddar">Hämtar data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let allaPersioner = [];
+
+    async function hamtaPersoner() {
+      try {
+        const res = await fetch("/api/personer");
+        allaPersioner = await res.json();
+        visaPersoner(allaPersioner);
+      } catch(e) {
+        document.getElementById("tabell-kropp").innerHTML =
+          '<tr><td colspan="7" class="tom">⚠ Kunde inte ansluta. Är app.py igång?</td></tr>';
+      }
+    }
+
+    function formatDatum(str) {
+      if (!str) return "-";
+      const d = new Date(str);
+      return d.toLocaleDateString("sv-SE", { year:"numeric", month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
+    }
+
+    function visaPersoner(lista) {
+      const tbody = document.getElementById("tabell-kropp");
+      document.getElementById("antal").textContent = lista.length + " " + (lista.length === 1 ? "person" : "personer");
+
+      if (lista.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="tom">Inga personer sparade än. <a href="/">Lägg till den första →</a></td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = lista.map(p => `
+        <tr>
+          <td class="muted">${p.id}</td>
+          <td>${p.fornamn}</td>
+          <td>${p.efternamn}</td>
+          <td>${p.postnummer}</td>
+          <td>${p.ort}</td>
+          <td class="muted">${formatDatum(p.skapad)}</td>
+          <td><button class="ta-bort" onclick="taBort(${p.id})" title="Ta bort">✕</button></td>
+        </tr>
+      `).join("");
+    }
+
+    function filtrera() {
+      const sok = document.getElementById("sok").value.toLowerCase();
+      const filtrerad = allaPersioner.filter(p =>
+        p.fornamn.toLowerCase().includes(sok) ||
+        p.efternamn.toLowerCase().includes(sok) ||
+        p.ort.toLowerCase().includes(sok) ||
+        p.postnummer.includes(sok)
+      );
+      visaPersoner(filtrerad);
+    }
+
+    async function taBort(id) {
+      if (!confirm("Ta bort denna person?")) return;
+      await fetch("/api/personer/" + id, { method: "DELETE" });
+      allaPersioner = allaPersioner.filter(p => p.id !== id);
+      filtrera();
+    }
+
+    function exporteraCsv() {
+      const rader = [["ID","Förnamn","Efternamn","Postnummer","Ort","Tillagd"]];
+      allaPersioner.forEach(p => rader.push([p.id, p.fornamn, p.efternamn, p.postnummer, p.ort, p.skapad]));
+      const csv = rader.map(r => r.join(";")).join("\n");
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "personer.csv"; a.click();
+    }
+
+    hamtaPersoner();
+    setInterval(hamtaPersoner, 10000); // Uppdatera var 10:e sekund
+  </script>
+</body>
+</html>

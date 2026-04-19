@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lägg till person</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .kort {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e8e8e4;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 440px;
+    }
+    h1 { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 0.25rem; }
+    .subtitle { font-size: 14px; color: #888; margin-bottom: 2rem; }
+    nav { margin-bottom: 1.5rem; }
+    nav a {
+      font-size: 13px;
+      color: #555;
+      text-decoration: none;
+      background: #f5f5f0;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid #e0e0da;
+    }
+    nav a:hover { background: #eaeae5; }
+    .rad { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .falt { margin-bottom: 1.25rem; }
+    .falt label { display: block; font-size: 12px; font-weight: 500; color: #666; margin-bottom: 6px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .falt input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      color: #1a1a1a;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .falt input:focus { border-color: #1a1a1a; }
+    .falt input.fel { border-color: #e24b4a; }
+    .feltext { font-size: 12px; color: #e24b4a; margin-top: 4px; display: none; }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #1a1a1a;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    button:hover { opacity: 0.85; }
+    button:active { transform: scale(0.99); }
+    button:disabled { opacity: 0.5; cursor: default; }
+    #meddelande {
+      margin-top: 1rem;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+    #meddelande.ok { background: #eaf3de; color: #3b6d11; border: 1px solid #c0dd97; }
+    #meddelande.fel { background: #fcebeb; color: #a32d2d; border: 1px solid #f7c1c1; }
+  </style>
+</head>
+<body>
+  <div class="kort">
+    <h1>Lägg till person</h1>
+    <p class="subtitle">Fyll i uppgifterna och klicka på Spara.</p>
+
+    <nav>
+      <a href="/lista">📊 Se alla sparade personer →</a>
+    </nav>
+
+    <div class="rad">
+      <div class="falt">
+        <label for="fornamn">Förnamn</label>
+        <input type="text" id="fornamn" placeholder="Anna" autocomplete="given-name" />
+        <div class="feltext" id="fornamn-fel">Obligatoriskt</div>
+      </div>
+      <div class="falt">
+        <label for="efternamn">Efternamn</label>
+        <input type="text" id="efternamn" placeholder="Lindgren" autocomplete="family-name" />
+        <div class="feltext" id="efternamn-fel">Obligatoriskt</div>
+      </div>
+    </div>
+
+    <div class="rad">
+      <div class="falt">
+        <label for="postnummer">Postnummer</label>
+        <input type="text" id="postnummer" placeholder="123 45" maxlength="6" autocomplete="postal-code" />
+        <div class="feltext" id="postnummer-fel">Ange 5 siffror</div>
+      </div>
+      <div class="falt">
+        <label for="ort">Ort</label>
+        <input type="text" id="ort" placeholder="Stockholm" autocomplete="address-level2" />
+        <div class="feltext" id="ort-fel">Obligatoriskt</div>
+      </div>
+    </div>
+
+    <button id="skicka-btn" onclick="skicka()">Spara</button>
+    <div id="meddelande"></div>
+  </div>
+
+  <script>
+    // Auto-formatera postnummer
+    document.getElementById("postnummer").addEventListener("input", function() {
+      let v = this.value.replace(/\D/g, "");
+      if (v.length > 3) v = v.slice(0,3) + " " + v.slice(3,5);
+      this.value = v;
+    });
+
+    function validera(id, felId, check) {
+      const el = document.getElementById(id);
+      const fel = document.getElementById(felId);
+      if (!check(el.value)) {
+        el.classList.add("fel");
+        fel.style.display = "block";
+        return false;
+      }
+      el.classList.remove("fel");
+      fel.style.display = "none";
+      return true;
+    }
+
+    async function skicka() {
+      const v1 = validera("fornamn", "fornamn-fel", v => v.trim().length > 0);
+      const v2 = validera("efternamn", "efternamn-fel", v => v.trim().length > 0);
+      const v3 = validera("postnummer", "postnummer-fel", v => /^\d{3}\s?\d{2}$/.test(v.trim()));
+      const v4 = validera("ort", "ort-fel", v => v.trim().length > 0);
+      if (!v1 || !v2 || !v3 || !v4) return;
+
+      const btn = document.getElementById("skicka-btn");
+      btn.disabled = true;
+      btn.textContent = "Sparar...";
+
+      try {
+        const res = await fetch("/spara", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fornamn: document.getElementById("fornamn").value.trim(),
+            efternamn: document.getElementById("efternamn").value.trim(),
+            postnummer: document.getElementById("postnummer").value.trim(),
+            ort: document.getElementById("ort").value.trim()
+          })
+        });
+        const data = await res.json();
+        const msg = document.getElementById("meddelande");
+        msg.style.display = "block";
+        if (res.ok) {
+          msg.className = "ok";
+          msg.textContent = "✓ " + data.meddelande;
+          ["fornamn","efternamn","postnummer","ort"].forEach(id => document.getElementById(id).value = "");
+        } else {
+          msg.className = "fel";
+          msg.textContent = "✗ " + data.meddelande;
+        }
+      } catch(e) {
+        const msg = document.getElementById("meddelande");
+        msg.style.display = "block";
+        msg.className = "fel";
+        msg.textContent = "✗ Kunde inte ansluta till servern. Är app.py igång?";
+      }
+
+      btn.disabled = false;
+      btn.textContent = "Spara";
+    }
+
+    document.addEventListener("keydown", e => { if (e.key === "Enter") skicka(); });
+  </script>
+</body>
+</html>
